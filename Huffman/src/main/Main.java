@@ -2,37 +2,29 @@ package main;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.PriorityQueue;
-
-import tree.HuffmanElement;
+import tree.HuffmanResultElement;
 import tree.Node;
 import tree.Tree;
 
 public class Main {
-
 	public static void main(String[] args) {
 		File file = new File("E:/text2.txt");
 		String text = readAll(file);
+		HuffmanResultElement res = encodeHuffman(text);
 		System.out.println(text);
-		
-		String res = encodeHuffman(text);
-		
-		System.out.println(res);
-		System.out.println(res.length());
-		String res2 = encodeNotHuffman(text);
-		System.out.println(res2);
-		System.out.println(res2.length());
+		System.out.println(res.getCodeMap());
+		System.out.println(res.getOutput());
+		System.out.println("length : " + res.getOutput().length());
 	}
 
 	public static String readAll(File file) {
+		//file의 내용을 읽어 1개의 String으로 반환, 줄바꿈은 공백으로 처리함
 		String result = "";
 		FileReader fr = null;
 		BufferedReader br = null;
@@ -48,8 +40,6 @@ public class Main {
 				else
 					result += temp + " ";
 			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -63,7 +53,13 @@ public class Main {
 		return result;
 	}
 	
-	public static String encodeHuffman(String str) {
+	/**
+	 * 입력받은 문자열을 Huffman coding을 통해 변환하여 반환
+	 * @param str
+	 * @return
+	 */
+	public static HuffmanResultElement encodeHuffman(String str) {
+		//입력 문자열을 확인하여 각각의 문자가 몇개있는지 확인하여 Node로 HashMap에 저장
 		HashMap<String, Node> map = new HashMap<>();
 		for (int i = 0; i < str.length(); i++) {
 			String key = Character.toString(str.charAt(i));
@@ -73,16 +69,19 @@ public class Main {
 				map.get(key).addCnt();
 		}
 		
+		//HashMap에 저장된 Node들을 Node가 1개인 Tree로 만들어 우선순위큐에 저장
+		//우선순위는 Tree 클래스에 구현된 Comparable을 통해 정해짐
 		List<Node> list = new ArrayList<>();
 		list.addAll(map.values());
 		PriorityQueue<Tree> pq = new PriorityQueue<>();
 		for (int i = 0; i < list.size(); i++) {
 			Tree tempTree = new Tree();
 			tempTree.setRoot(list.get(i));
-			tempTree.setWeight(tempTree.getWeight()+list.get(i).getCnt());
+			tempTree.setWeight(list.get(i).getCnt());
 			pq.add(tempTree);
 		}
 		
+		//우선순위 큐에서 가장 weight가 작은 Tree를 두개씩 꺼내 병합
 		Tree resTree = null;
 		while (true) {
 			Tree temp1 = pq.poll();
@@ -92,19 +91,26 @@ public class Main {
 			resTree = temp1.merge(temp2);
 			pq.add(resTree);
 		}
+		
+		//완성된 Tree를 통해 Huffman code table 작성 후 HashMap에 저장
 		resTree.calcCodeList();
-		List<HuffmanElement> resList = resTree.getCodeList();
-		HashMap<String, String> resMap = new HashMap<>();
-		for (HuffmanElement e : resList)
-			resMap.put(e.getKey(), e.getCode());
-		System.out.println("\n"+resList.toString());
-		String result = "";
+		HashMap<String, String> resMap = resTree.getCodeMap();
+		
+		//입력된 문자열을 code table을 통해 변환 (실제로는 binary로 저장되나 출력을 위해 문자열로 저장)
+		String outputStr = "";
 		for (int i = 0; i < str.length(); i++)
-			result += resMap.get(Character.toString(str.charAt(i)));
-		return result;
+			outputStr += resMap.get(Character.toString(str.charAt(i)));
+		
+		HuffmanResultElement res = new HuffmanResultElement(str, outputStr, resMap);
+		return res;
 	}
 	
-	public static String encodeNotHuffman(String str) {
+	/**
+	 * Greedy method가 적용되지 않은 코드
+	 * @param str
+	 * @return
+	 */
+	/*public static String encodeNotHuffman(String str) {
 		HashMap<String, Integer> map = new HashMap<>();
 		for (int i = 0; i < str.length(); i++) {
 			String key = Character.toString(str.charAt(i));
@@ -129,26 +135,26 @@ public class Main {
 		});
 		Collections.reverse(sorted);
 		
-		List<HuffmanElement> tempList = new ArrayList<>();
+		HashMap<String, String> resMap = new HashMap<>();
 		for (int i = 0; i < sorted.size(); i++) {
 			String temp = "";
 			for (int k = 0; k < i; k++)
 				temp += "0";
-			if (i != sorted.size())
+			if (i != sorted.size() - 1)
 				temp += "1";
-			tempList.add(new HuffmanElement(sorted.get(i), temp));
+			resMap.put(sorted.get(i), temp);
 		}
-		System.out.println(tempList.toString());
+		System.out.println(resMap.toString());
 		String result = "";
 		for (int i = 0; i < str.length(); i++) {
 			String temp = "";
 			int index = sorted.indexOf(Character.toString(str.charAt(i)));
 			for (int j = 0; j < index; j++)
 				temp += "0";
-			if (index != sorted.size())
+			if (index != sorted.size() - 1)
 				temp += "1";
 			result += temp;
 		}
 		return result;
-	}
+	}*/
 }
